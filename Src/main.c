@@ -33,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define SPI_TX_BUF_SIZE 10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,8 +49,12 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-int32uint8_t tx_enc[2] = {0};
 inc_enc_t encoder[2];
+
+uint8_t spi_tx_buf[SPI_TX_BUF_SIZE] = {
+	0
+};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -86,16 +90,18 @@ int main(void) {
     SystemClock_Config();
 
     /* USER CODE BEGIN SysInit */
-
+    //Configure systick_callback rate and registration
+    HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / FREQUENCY);
+    HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+    HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
     /* USER CODE END SysInit */
 
     /* Initialize all configured peripherals */
     Peripheral_Init();
     /* USER CODE BEGIN 2 */
-    AMT_Inc_Init(&encoder[LEFT_INDEX]);
-    AMT_Inc_Init(&encoder[RIGHT_INDEX]);
-
-    HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+    AMT_Inc_Init(&encoder[LEFT_INDEX], &htim2);
+    AMT_Inc_Init(&encoder[RIGHT_INDEX], &htim3);
+    HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -104,6 +110,7 @@ int main(void) {
 	/* USER CODE END WHILE */
 
 	/* USER CODE BEGIN 3 */
+	__WFI();
 
     }
     /* USER CODE END 3 */
@@ -156,12 +163,39 @@ void HAL_SYSTICK_Callback(void) {
     /* NOTE : This function Should not be modified, when the callback is needed,
      the HAL_SYSTICK_Callback could be implemented in the user file
      */
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
     encoder[LEFT_INDEX].enc = AMT_ReadEncoder(&encoder[LEFT_INDEX], (int16_t) (LEFT_ENC_TIM->CNT));
     AMT_CalVelocity(&encoder[LEFT_INDEX]);
     encoder[RIGHT_INDEX].enc = AMT_ReadEncoder(&encoder[RIGHT_INDEX], (int16_t) (RIGHT_ENC_TIM->CNT));
     AMT_CalVelocity(&encoder[RIGHT_INDEX]);
+}
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
+    /* NOTE : This function should not be modified, when the callback is needed,
+     the HAL_SPI_TxCpltCallback should be implemented in the user file
+     */
+    if (hspi == &hspi1) {
+	floatuint8_t tx_buf[2];
+	tx_buf[LEFT_INDEX].b32 = encoder[LEFT_INDEX].velocity;
+	tx_buf[RIGHT_INDEX].b32 = encoder[RIGHT_INDEX].velocity;
+	spi_tx_buf[0] = tx_buf[LEFT_INDEX].b8[0];
+	spi_tx_buf[1] = tx_buf[LEFT_INDEX].b8[1];
+	spi_tx_buf[2] = tx_buf[LEFT_INDEX].b8[2];
+	spi_tx_buf[3] = tx_buf[LEFT_INDEX].b8[3];
+	spi_tx_buf[4] = tx_buf[RIGHT_INDEX].b8[0];
+	spi_tx_buf[5] = tx_buf[RIGHT_INDEX].b8[1];
+	spi_tx_buf[6] = tx_buf[RIGHT_INDEX].b8[2];
+	spi_tx_buf[7] = tx_buf[RIGHT_INDEX].b8[3];
+	uint16_t checksum = 0;
+	for (int i = 0; i < 8; i++)
+	    checksum += spi_tx_buf[i];
+	spi_tx_buf[8] = (uint8_t) (checksum & 0xff);
+	spi_tx_buf[9] = (uint8_t) ((checksum >> 8) & 0xff);
+	HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
+    }
 
 }
+
 /* USER CODE END 4 */
 
 /**

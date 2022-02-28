@@ -18,7 +18,7 @@ typedef struct{
     float velocity; //angular velocity
 }inc_enc_t;
 
-void AMT_Inc_Init(inc_enc_t* inc_enc);
+void AMT_Inc_Init(inc_enc_t* inc_enc, TIM_HandleTypeDef *htim);
 int32_t AMT_ReadEncoder(inc_enc_t* inc_enc, int16_t tim_count);
 float AMT_CalVelocity(inc_enc_t* inc_enc);
 #endif /* INC_AMT_INC_ENC_H_ */

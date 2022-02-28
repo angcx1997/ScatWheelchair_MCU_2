@@ -10,8 +10,9 @@
 
 #define TIM_COUNT_MAX 32767
 #define ENCODER_MAX_PPR 8192.0 //Max pulse per resolution
-void AMT_Inc_Init(inc_enc_t* inc_enc){
+void AMT_Inc_Init(inc_enc_t* inc_enc, TIM_HandleTypeDef *htim){
     memset(inc_enc, 0, sizeof(*inc_enc));
+    HAL_TIM_Encoder_Start(htim, TIM_CHANNEL_ALL);
 }
 
 int32_t AMT_ReadEncoder(inc_enc_t* inc_enc, int16_t tim_count){

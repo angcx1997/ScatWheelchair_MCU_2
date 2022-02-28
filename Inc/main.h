@@ -67,9 +67,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED_Pin GPIO_PIN_2
-#define LED_GPIO_Port GPIOB
+#define LED_Pin GPIO_PIN_13
+#define LED_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
+#define FREQUENCY 	1000
 #define LEFT_ENC_TIM 	TIM2
 #define RIGHT_ENC_TIM 	TIM3
 #define LEFT_INDEX	0
