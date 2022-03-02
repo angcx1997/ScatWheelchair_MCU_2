@@ -55,6 +55,10 @@ uint8_t spi_tx_buf[SPI_TX_BUF_SIZE] = {
 	0
 };
 
+float prev_vel[2] = {0};
+#define EXPONENTIAL_ALPHA 0.8
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -110,7 +114,7 @@ int main(void) {
 	/* USER CODE END WHILE */
 
 	/* USER CODE BEGIN 3 */
-	__WFI();
+	__NOP();
 
     }
     /* USER CODE END 3 */
@@ -168,6 +172,33 @@ void HAL_SYSTICK_Callback(void) {
     AMT_CalVelocity(&encoder[LEFT_INDEX]);
     encoder[RIGHT_INDEX].enc = AMT_ReadEncoder(&encoder[RIGHT_INDEX], (int16_t) (RIGHT_ENC_TIM->CNT));
     AMT_CalVelocity(&encoder[RIGHT_INDEX]);
+    //Exponential filter for each velocity
+//    encoder[RIGHT_INDEX].velocity = encoder[RIGHT_INDEX].velocity * EXPONENTIAL_ALPHA + (1.0 - EXPONENTIAL_ALPHA) * prev_vel[RIGHT_INDEX];
+//    encoder[LEFT_INDEX].velocity = encoder[LEFT_INDEX].velocity * EXPONENTIAL_ALPHA + (1.0 - EXPONENTIAL_ALPHA) * prev_vel[LEFT_INDEX];
+//    encoder[RIGHT_INDEX].velocity *= 0.25;
+//    encoder[LEFT_INDEX].velocity *= 0.25;
+//    prev_vel[LEFT_INDEX] = encoder[LEFT_INDEX].velocity;
+//    prev_vel[RIGHT_INDEX] = encoder[RIGHT_INDEX].velocity;
+
+    //SPI Transmit
+    floatuint8_t tx_buf[2];
+    tx_buf[LEFT_INDEX].b32 = encoder[LEFT_INDEX].velocity;
+    tx_buf[RIGHT_INDEX].b32 = encoder[RIGHT_INDEX].velocity;
+    spi_tx_buf[0] = tx_buf[LEFT_INDEX].b8[0];
+    spi_tx_buf[1] = tx_buf[LEFT_INDEX].b8[1];
+    spi_tx_buf[2] = tx_buf[LEFT_INDEX].b8[2];
+    spi_tx_buf[3] = tx_buf[LEFT_INDEX].b8[3];
+    spi_tx_buf[4] = tx_buf[RIGHT_INDEX].b8[0];
+    spi_tx_buf[5] = tx_buf[RIGHT_INDEX].b8[1];
+    spi_tx_buf[6] = tx_buf[RIGHT_INDEX].b8[2];
+    spi_tx_buf[7] = tx_buf[RIGHT_INDEX].b8[3];
+    uint16_t checksum = 0;
+    for (int i = 0; i < 8; i++)
+	checksum += spi_tx_buf[i];
+    spi_tx_buf[8] = (uint8_t) (checksum & 0xff);
+    spi_tx_buf[9] = (uint8_t) ((checksum >> 8) & 0xff);
+
+    HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
 }
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
@@ -175,23 +206,8 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
      the HAL_SPI_TxCpltCallback should be implemented in the user file
      */
     if (hspi == &hspi1) {
-	floatuint8_t tx_buf[2];
-	tx_buf[LEFT_INDEX].b32 = encoder[LEFT_INDEX].velocity;
-	tx_buf[RIGHT_INDEX].b32 = encoder[RIGHT_INDEX].velocity;
-	spi_tx_buf[0] = tx_buf[LEFT_INDEX].b8[0];
-	spi_tx_buf[1] = tx_buf[LEFT_INDEX].b8[1];
-	spi_tx_buf[2] = tx_buf[LEFT_INDEX].b8[2];
-	spi_tx_buf[3] = tx_buf[LEFT_INDEX].b8[3];
-	spi_tx_buf[4] = tx_buf[RIGHT_INDEX].b8[0];
-	spi_tx_buf[5] = tx_buf[RIGHT_INDEX].b8[1];
-	spi_tx_buf[6] = tx_buf[RIGHT_INDEX].b8[2];
-	spi_tx_buf[7] = tx_buf[RIGHT_INDEX].b8[3];
-	uint16_t checksum = 0;
-	for (int i = 0; i < 8; i++)
-	    checksum += spi_tx_buf[i];
-	spi_tx_buf[8] = (uint8_t) (checksum & 0xff);
-	spi_tx_buf[9] = (uint8_t) ((checksum >> 8) & 0xff);
-	HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
+
+//	HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
     }
 
 }

@@ -15,6 +15,7 @@ typedef struct{
     int16_t prev_tim_count; //get from timer input capture
     int32_t prev_enc; 	//use to calculate velocity
     int32_t enc;
+    int32_t diff_enc;
     float velocity; //angular velocity
 }inc_enc_t;
 

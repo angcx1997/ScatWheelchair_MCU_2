@@ -43,7 +43,7 @@ float AMT_CalVelocity(inc_enc_t* inc_enc){
 	Error_Handler();
 
     float dt = (float)(HAL_GetTick() - inc_enc->prev_t) / freq;
-
+    inc_enc->diff_enc = inc_enc->enc - inc_enc->prev_enc;
     inc_enc->velocity = (((float)(inc_enc->enc - inc_enc->prev_enc)/ENCODER_MAX_PPR) * 2 * M_PI )/ dt;
     inc_enc->prev_t = HAL_GetTick();
     inc_enc->prev_enc = inc_enc->enc;
