@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "peripheral_init.h"
 #include "amt_inc_enc.h"
+#include "utilities.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,7 +64,12 @@ uint8_t spi_rx_buf[SPI_TX_BUF_SIZE] = {
 float prev_vel[2] = {
 	0
 };
+
 #define EXPONENTIAL_ALPHA 0.8
+
+uint32_t diff_t = 0;
+uint32_t cmplt_t = 0;
+uint8_t tx_rx_state = 0; //0 incomplete, 1 complete
 
 /* USER CODE END PV */
 
@@ -201,25 +207,44 @@ void HAL_SYSTICK_Callback(void) {
     spi_tx_buf[5] = tx_buf[RIGHT_INDEX].b8[1];
     spi_tx_buf[6] = tx_buf[RIGHT_INDEX].b8[2];
     spi_tx_buf[7] = tx_buf[RIGHT_INDEX].b8[3];
-    uint16_t checksum = 0;
-    for (int i = 0; i < 8; i++)
-	checksum += spi_tx_buf[i];
+    uint16_t checksum = CalculateChecksum_16bit(spi_tx_buf, 8);
     spi_tx_buf[8] = (uint8_t) (checksum & 0xff);
     spi_tx_buf[9] = (uint8_t) ((checksum >> 8) & 0xff);
 
-    HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
+    if (tx_rx_state == 1 || (tx_rx_state == 0 && HAL_SPI_GetState(&hspi1) == HAL_SPI_STATE_READY)) {
+	//Pull CS Low to Init Transmission
+	HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_TransmitReceive_DMA(&hspi1, spi_tx_buf, spi_rx_buf, sizeof(spi_tx_buf));
+	tx_rx_state = 0;
+	diff_t = HAL_GetTick() - cmplt_t;
+    }
 }
 
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
     /* NOTE : This function should not be modified, when the callback is needed,
-     the HAL_SPI_TxCpltCallback should be implemented in the user file
+     the HAL_SPI_TxRxCpltCallback should be implemented in the user file
      */
     if (hspi == &hspi1) {
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	tx_rx_state = 1;
 
-//	HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
+	if(ValidateChecksum_16bit(spi_rx_buf, sizeof(spi_rx_buf)) == true)
+	{
+	    cmplt_t = HAL_GetTick();
+	}
     }
-
 }
+
+//void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
+//    /* NOTE : This function should not be modified, when the callback is needed,
+//     the HAL_SPI_TxCpltCallback should be implemented in the user file
+//     */
+//    if (hspi == &hspi1) {
+//
+////	HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
+//    }
+//
+//}
 
 /* USER CODE END 4 */
 
