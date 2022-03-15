@@ -13,6 +13,7 @@
 
 extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_spi1_tx;
+extern DMA_HandleTypeDef hdma_spi1_rx;
 
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;

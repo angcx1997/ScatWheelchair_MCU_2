@@ -44,6 +44,7 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 DMA_HandleTypeDef hdma_spi1_tx;
+DMA_HandleTypeDef hdma_spi1_rx;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -55,9 +56,14 @@ uint8_t spi_tx_buf[SPI_TX_BUF_SIZE] = {
 	0
 };
 
-float prev_vel[2] = {0};
-#define EXPONENTIAL_ALPHA 0.8
+uint8_t spi_rx_buf[SPI_TX_BUF_SIZE] = {
+	0
+};
 
+float prev_vel[2] = {
+	0
+};
+#define EXPONENTIAL_ALPHA 0.8
 
 /* USER CODE END PV */
 
@@ -105,7 +111,10 @@ int main(void) {
     /* USER CODE BEGIN 2 */
     AMT_Inc_Init(&encoder[LEFT_INDEX], &htim2);
     AMT_Inc_Init(&encoder[RIGHT_INDEX], &htim3);
-    HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
+
+    //Pull CS Low to Init Transmission
+    HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_TransmitReceive_DMA(&hspi1, spi_tx_buf, spi_rx_buf, sizeof(spi_tx_buf));
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -180,7 +189,7 @@ void HAL_SYSTICK_Callback(void) {
 //    prev_vel[LEFT_INDEX] = encoder[LEFT_INDEX].velocity;
 //    prev_vel[RIGHT_INDEX] = encoder[RIGHT_INDEX].velocity;
 
-    //SPI Transmit
+//SPI Transmit
     floatuint8_t tx_buf[2];
     tx_buf[LEFT_INDEX].b32 = encoder[LEFT_INDEX].velocity;
     tx_buf[RIGHT_INDEX].b32 = encoder[RIGHT_INDEX].velocity;
