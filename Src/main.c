@@ -33,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SPI_TX_BUF_SIZE 10
+#define SPI_TX_BUF_SIZE 11
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -184,19 +184,20 @@ void HAL_SYSTICK_Callback(void) {
     floatuint8_t tx_buf[2];
     tx_buf[LEFT_INDEX].b32 = encoder[LEFT_INDEX].velocity;
     tx_buf[RIGHT_INDEX].b32 = encoder[RIGHT_INDEX].velocity;
-    spi_tx_buf[0] = tx_buf[LEFT_INDEX].b8[0];
-    spi_tx_buf[1] = tx_buf[LEFT_INDEX].b8[1];
-    spi_tx_buf[2] = tx_buf[LEFT_INDEX].b8[2];
-    spi_tx_buf[3] = tx_buf[LEFT_INDEX].b8[3];
-    spi_tx_buf[4] = tx_buf[RIGHT_INDEX].b8[0];
-    spi_tx_buf[5] = tx_buf[RIGHT_INDEX].b8[1];
-    spi_tx_buf[6] = tx_buf[RIGHT_INDEX].b8[2];
-    spi_tx_buf[7] = tx_buf[RIGHT_INDEX].b8[3];
+    spi_tx_buf[0] = 0xAE;
+    spi_tx_buf[1] = tx_buf[LEFT_INDEX].b8[0];
+    spi_tx_buf[2] = tx_buf[LEFT_INDEX].b8[1];
+    spi_tx_buf[3] = tx_buf[LEFT_INDEX].b8[2];
+    spi_tx_buf[4] = tx_buf[LEFT_INDEX].b8[3];
+    spi_tx_buf[5] = tx_buf[RIGHT_INDEX].b8[0];
+    spi_tx_buf[6] = tx_buf[RIGHT_INDEX].b8[1];
+    spi_tx_buf[7] = tx_buf[RIGHT_INDEX].b8[2];
+    spi_tx_buf[8] = tx_buf[RIGHT_INDEX].b8[3];
     uint16_t checksum = 0;
     for (int i = 0; i < 8; i++)
 	checksum += spi_tx_buf[i];
-    spi_tx_buf[8] = (uint8_t) (checksum & 0xff);
-    spi_tx_buf[9] = (uint8_t) ((checksum >> 8) & 0xff);
+    spi_tx_buf[9] = (uint8_t) (checksum & 0xff);
+    spi_tx_buf[10] = (uint8_t) ((checksum >> 8) & 0xff);
 
     HAL_SPI_Transmit_DMA(&hspi1, (uint8_t*) spi_tx_buf, sizeof(spi_tx_buf));
 }
