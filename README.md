@@ -10,6 +10,9 @@ The MCU does
 Link to Main MCU repo:
 https://github.com/angcx1997/scat_microcontroller
 
+Link to original author repo:
+https://github.com/angcx1997/ScatWheelchair_MCU_2
+
 ## Requirement
 - STM32CubeIDE > 1.7.0
   
