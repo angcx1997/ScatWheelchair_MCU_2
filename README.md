@@ -1,6 +1,6 @@
 # ScatWheelchair_MCU_2
 
-This repo is the secondary embedded system(Bluepill - STM32F103C8TX) on the wheelchair.
+This repo is the secondary embedded system(Bluepill - STM32F103C8TX) on the shared controlled autonomous wheelchair.
 
 The MCU does
  - collect data from incremental encoder
